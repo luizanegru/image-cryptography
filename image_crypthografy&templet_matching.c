@@ -2,24 +2,22 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-struct pixel
-{
+struct pixel {
     unsigned char pB;
     unsigned char pG;
     unsigned char pR;
 };
-struct detectie
-{
+
+struct detectie {
     unsigned int lin;     //indicele i al liniei;
     unsigned int col;     //indicele j al coloane;
     double corr;          //corelatia dintre sablonul S si fereastra fI
     struct pixel culoare; //struct pixel culoare;
 };
-void liniarizare(char *numeFisier, struct pixel **arr_lin, unsigned int *latime_img, unsigned int *inaltime_img)
-{
+
+void liniarizare(char *numeFisier, struct pixel **arr_lin, unsigned int *latime_img, unsigned int *inaltime_img) {
     FILE *f = fopen(numeFisier, "rb");
-    if (f == NULL)
-    {
+    if (f == NULL) {
         printf("Eroare la deschiderea fisierului");
         return;
     }
@@ -38,10 +36,8 @@ void liniarizare(char *numeFisier, struct pixel **arr_lin, unsigned int *latime_
     int i, j;
     unsigned char x;
     fseek(f, 54, SEEK_SET);
-    for (i = (*inaltime_img) - 1; i > -1; i--)
-    {
-        for (j = 0; j < (*latime_img); j++)
-        {
+    for (i = (*inaltime_img) - 1; i > -1; i--) {
+        for (j = 0; j < (*latime_img); j++) {
             fread(&x, sizeof(unsigned char), 1, f);
             (*arr_lin)[i * (*latime_img) + j].pB = x;
             fread(&x, sizeof(unsigned char), 1, f);
@@ -53,13 +49,12 @@ void liniarizare(char *numeFisier, struct pixel **arr_lin, unsigned int *latime_
     }
     fclose(f);
 }
-void xorShift32(unsigned int latime_img, unsigned int inaltime_img, unsigned int **arrXor, unsigned int *seed)
-{
+
+void xorShift32(unsigned int latime_img, unsigned int inaltime_img, unsigned int **arrXor, unsigned int *seed) {
     FILE *f = fopen("secret_key.txt", "r");
     unsigned int i, r, aux;
 
-    if (f == NULL)
-    {
+    if (f == NULL) {
         printf("Eroare la deschiderea fisierului");
         return;
     }
@@ -72,60 +67,51 @@ void xorShift32(unsigned int latime_img, unsigned int inaltime_img, unsigned int
     (*arrXor)[0] = (*seed); //Initializarea lui R0
 
     //Generarea numerelor intregi pe 32 de biti
-    for (i = 1; i < lungime; i++)
-    {
+    for (i = 1; i < lungime; i++) {
         (*arrXor)[i] = (*arrXor)[i - 1] ^ (*arrXor)[i - 1] << 13;
         (*arrXor)[i] = (*arrXor)[i] ^ (*arrXor)[i] >> 17;
         (*arrXor)[i] = (*arrXor)[i] ^ (*arrXor)[i] << 5;
     }
     fclose(f);
 }
-void permutare(unsigned int *arrXor, unsigned int latime_img, unsigned int inaltime_img, unsigned int seed, unsigned int **perm)
-{
+void permutare(unsigned int *arrXor, unsigned int latime_img, unsigned int inaltime_img, unsigned int seed, unsigned int **perm) {
     FILE *f = fopen("secret_key.txt", "r");
     unsigned int i, r, aux, k;
 
-    if (f == NULL)
-    {
+    if (f == NULL) {
         printf("Eroare la deschiderea fisierului");
         return;
     }
     fscanf(f, "%u", &seed);
     *perm = (unsigned int *)malloc(latime_img * inaltime_img * sizeof(unsigned int));
 
-    for (i = 0; i < (latime_img) * (inaltime_img); i++)
-    {
+    for (i = 0; i < (latime_img) * (inaltime_img); i++) {
         (*perm)[i] = i;
     }
 
     xorShift32(latime_img, inaltime_img, &arrXor, &seed);
-    for (i = (latime_img * inaltime_img) - 1; i >= 1; i--)
-    {
+    for (i = (latime_img * inaltime_img) - 1; i >= 1; i--) {
         r = arrXor[(latime_img * inaltime_img) - i] % (i + 1);
         aux = (*perm)[r];
         (*perm)[r] = (*perm)[i];
         (*perm)[i] = aux;
     }
 }
-void permutarea_imaginii(struct pixel *arr_lin, struct pixel **arr_img_perm)
-{
+void permutarea_imaginii(struct pixel *arr_lin, struct pixel **arr_img_perm) {
 
     unsigned int inaltime_img, latime_img, i, seed, arrXor, *perm;
     liniarizare("imagine_initiala.bmp", &arr_lin, &latime_img, &inaltime_img);
     permutare(&arrXor, latime_img, inaltime_img, seed, &perm);
     *arr_img_perm = (struct pixel *)malloc(latime_img * inaltime_img * sizeof(struct pixel));
 
-    for (i = 0; i < (latime_img * inaltime_img); i++)
-    {
+    for (i = 0; i < (latime_img * inaltime_img); i++) {
         (*arr_img_perm)[perm[i]] = arr_lin[i];
     }
 }
 
-void primire_chei(char *numeFisierChei, unsigned int *R0, unsigned int *SV)
-{
+void primire_chei(char *numeFisierChei, unsigned int *R0, unsigned int *SV) {
     FILE *f = fopen(numeFisierChei, "r");
-    if (f == NULL)
-    {
+    if (f == NULL) {
         printf("Eroare la deschiderea fisierului");
         return;
     }
@@ -134,11 +120,9 @@ void primire_chei(char *numeFisierChei, unsigned int *R0, unsigned int *SV)
     fclose(f);
 }
 
-void dimensiuni(char *numeFisierImg, unsigned int *latime_img, unsigned int *inaltime_img)
-{
+void dimensiuni(char *numeFisierImg, unsigned int *latime_img, unsigned int *inaltime_img) {
     FILE *g = fopen(numeFisierImg, "rb");
-    if (g == NULL)
-    {
+    if (g == NULL) {
         printf("Eroare la deschiderea fisierului");
         return;
     }
@@ -149,8 +133,7 @@ void dimensiuni(char *numeFisierImg, unsigned int *latime_img, unsigned int *ina
     fclose(g);
 }
 
-struct pixel pixelXORint(unsigned int x, struct pixel p1)
-{
+struct pixel pixelXORint(unsigned int x, struct pixel p1) {
     unsigned char X0, X1, X2;
     X0 = (unsigned char)x & 0xFF;
     x >>= 8;
@@ -167,8 +150,7 @@ struct pixel pixelXORint(unsigned int x, struct pixel p1)
     return p2;
 }
 
-struct pixel pixelXORpixel(struct pixel p1, struct pixel p2)
-{
+struct pixel pixelXORpixel(struct pixel p1, struct pixel p2) {
     struct pixel p3;
     (p3).pB = (p1.pB ^ p2.pB);
     (p3).pG = (p1.pG ^ p2.pG);
@@ -176,8 +158,7 @@ struct pixel pixelXORpixel(struct pixel p1, struct pixel p2)
     return p3;
 }
 
-void criptare(struct pixel *arr_img_perm, unsigned int *arrXor, struct pixel **arr_img_crip, struct pixel *arr_lin)
-{
+void criptare(struct pixel *arr_img_perm, unsigned int *arrXor, struct pixel **arr_img_crip, struct pixel *arr_lin) {
     unsigned int SV, R0, latime_img, inaltime_img, i = 0, k;
     // struct pixel arr_img_perm;
 
@@ -193,8 +174,7 @@ void criptare(struct pixel *arr_img_perm, unsigned int *arrXor, struct pixel **a
 
     (*arr_img_crip)[0] = pixelXORint(SV, arr_img_perm[0]);
     (*arr_img_crip)[0] = pixelXORint(arrXor[k], (*arr_img_crip)[0]);
-    for (i = 1; i < inaltime_img * latime_img; i++)
-    {
+    for (i = 1; i < inaltime_img * latime_img; i++) {
         (*arr_img_crip)[i] = pixelXORpixel((*arr_img_crip)[i - 1], arr_img_perm[i]);
 
         (*arr_img_crip)[i] = pixelXORint(arrXor[k + i], (*arr_img_crip)[i]);
@@ -202,20 +182,17 @@ void criptare(struct pixel *arr_img_perm, unsigned int *arrXor, struct pixel **a
 }
 
 ///////  DECRIPTARE ///////
-void permutare_inversa(unsigned int *perm, unsigned int **perm_inv)
-{
+void permutare_inversa(unsigned int *perm, unsigned int **perm_inv) {
     unsigned int latime_img, inaltime_img, i, arrXor, seed;
     dimensiuni("imagine_criptata.bmp", &latime_img, &inaltime_img);
     permutare(&arrXor, latime_img, inaltime_img, seed, &perm);
     *perm_inv = (unsigned int *)malloc(latime_img * inaltime_img * sizeof(unsigned int));
 
-    for (i = 0; i < inaltime_img * latime_img; i++)
-    {
+    for (i = 0; i < inaltime_img * latime_img; i++) {
         (*perm_inv)[perm[i]] = i;
     }
 }
-void substitutia_inversa(struct pixel **arr_C_prim, struct pixel *arr_C)
-{
+void substitutia_inversa(struct pixel **arr_C_prim, struct pixel *arr_C) {
 
     unsigned int latime_img, inaltime_img, R0, SV, i, lungime, *arrXor, seed;
     primire_chei("secret_key.txt", &R0, &SV);
@@ -227,15 +204,13 @@ void substitutia_inversa(struct pixel **arr_C_prim, struct pixel *arr_C)
     (*arr_C_prim)[0] = pixelXORint(SV, arr_C[0]);
     (*arr_C_prim)[0] = pixelXORint(arrXor[lungime], (*arr_C_prim)[0]);
 
-    for (i = 1; i < lungime; i++)
-    {
+    for (i = 1; i < lungime; i++) {
         (*arr_C_prim)[i] = pixelXORpixel(arr_C[i - 1], arr_C[i]);
         (*arr_C_prim)[i] = pixelXORint(arrXor[lungime + i], (*arr_C_prim)[i]);
     }
 }
 
-void decriptare(struct pixel **arr_D, struct pixel *arr_C_prim)
-{
+void decriptare(struct pixel **arr_D, struct pixel *arr_C_prim) {
     unsigned int latime_img, inaltime_img, i, *perm, *perm_inv;
     struct pixel arr_C;
     dimensiuni("imagine_criptata.bmp", &latime_img, &inaltime_img);
@@ -244,24 +219,20 @@ void decriptare(struct pixel **arr_D, struct pixel *arr_C_prim)
     *arr_D = (struct pixel *)malloc(latime_img * inaltime_img * sizeof(struct pixel));
     substitutia_inversa(&arr_C_prim, &arr_C);
 
-    for (i = 0; i < inaltime_img * latime_img; i++)
-    {
+    for (i = 0; i < inaltime_img * latime_img; i++) {
         (*arr_D)[perm_inv[i]] = arr_C_prim[i];
     }
 }
 
 void afisare(char *numeFisier_sursa, char *numeFisier_destinatie, struct pixel *arr_img_crip, unsigned int latime_img,
-             unsigned int inaltime_img)
-{
+             unsigned int inaltime_img) {
     FILE *fin = fopen(numeFisier_sursa, "rb");
     FILE *fout = fopen(numeFisier_destinatie, "wb");
-    if (fin == NULL)
-    {
+    if (fin == NULL) {
         printf("Eroare la deschiderea fisierului");
         return;
     }
-    if (fout == NULL)
-    {
+    if (fout == NULL) {
         printf("Eroare la deschiderea fisierului");
         return;
     }
@@ -277,28 +248,23 @@ void afisare(char *numeFisier_sursa, char *numeFisier_destinatie, struct pixel *
     else
         padding = 0;
     fseek(fin, 0, SEEK_SET);
-    for (i = 0; i < 54; i++)
-    {
+    for (i = 0; i < 54; i++) {
         fread(&x, sizeof(unsigned char), 1, fin);
         fwrite(&x, sizeof(unsigned char), 1, fout);
     }
 
-    for (i = inaltime_img - 1; i > -1; i--)
-    {
-        for (j = 0; j < latime_img; j++)
-        {
+    for (i = inaltime_img - 1; i > -1; i--) {
+        for (j = 0; j < latime_img; j++) {
             fwrite(&arr_img_crip[i * latime_img + j], sizeof(struct pixel), 1, fout);
         }
-        for (k = 0; k < padding; k++)
-        {
+        for (k = 0; k < padding; k++) {
             fwrite(&y, sizeof(unsigned char), 1, fout);
         }
     }
     fclose(fin);
     fclose(fout);
 }
-void test(char *numeFisierImg, float *XR, float *XG, float *XB)
-{
+void test(char *numeFisierImg, float *XR, float *XG, float *XB) {
     unsigned int i, j, inaltime_img, latime_img, *frB, *frG, *frR;
     float f_, sumB, sumG, sumR;
 
@@ -308,8 +274,7 @@ void test(char *numeFisierImg, float *XR, float *XG, float *XB)
 
     unsigned char x;
     FILE *f = fopen(numeFisierImg, "rb");
-    if (f == NULL)
-    {
+    if (f == NULL) {
         printf("Eroare la deschiderea fiaierului");
         return;
     }
@@ -320,10 +285,8 @@ void test(char *numeFisierImg, float *XR, float *XG, float *XB)
     f_ = (latime_img * inaltime_img) / 256;
 
     fseek(f, 54, SEEK_SET);
-    for (i = 0; i < inaltime_img; i++)
-    {
-        for (j = 0; j < latime_img; j++)
-        {
+    for (i = 0; i < inaltime_img; i++) {
+        for (j = 0; j < latime_img; j++) {
             fread(&x, sizeof(unsigned char), 1, f);
             {
                 frB[x]++;
@@ -339,8 +302,7 @@ void test(char *numeFisierImg, float *XR, float *XG, float *XB)
             }
         }
     }
-    for (i = 0; i < 256; i++)
-    {
+    for (i = 0; i < 256; i++) {
         sumB = (frB[i] - f_) * (frB[i] - f_);
         sumB = sumB / f_;
         (*XB) = (*XB) + sumB;
@@ -358,15 +320,13 @@ void test(char *numeFisierImg, float *XR, float *XG, float *XB)
 }
 
 ////// Template matching ///////
-void colorare(struct pixel **arr_lin_color, unsigned int linie, unsigned int coloana, struct pixel *C, char *numeImg, char *numeSablon)
-{
+void colorare(struct pixel **arr_lin_color, unsigned int linie, unsigned int coloana, struct pixel *C, char *numeImg, char *numeSablon) {
 
     unsigned int latime_img, inaltime_img, inaltime_sab, latime_sab, i, j, fixare;
     dimensiuni(numeImg, &latime_img, &inaltime_img);
     dimensiuni(numeSablon, &latime_sab, &inaltime_sab);
 
-    for (i = 0; i < latime_sab; i++)
-    {
+    for (i = 0; i < latime_sab; i++) {
         //am colorat linia de sus a ferestrei;
         ((*arr_lin_color))[latime_img * linie + i + coloana].pB = (*C).pB;
         (*arr_lin_color)[latime_img * linie + i + coloana].pG = (*C).pG;
@@ -378,8 +338,7 @@ void colorare(struct pixel **arr_lin_color, unsigned int linie, unsigned int col
         (*arr_lin_color)[latime_img * linie + (inaltime_sab - 1) * latime_img + i + coloana].pR = (*C).pR;
     }
 
-    for (i = 0; i < inaltime_sab - 1; i++)
-    {
+    for (i = 0; i < inaltime_sab - 1; i++) {
 
         //coloram coloana din stanga;
         (*arr_lin_color)[latime_img * (linie + 1 + i) + coloana].pB = (*C).pB;
@@ -395,6 +354,7 @@ void colorare(struct pixel **arr_lin_color, unsigned int linie, unsigned int col
         (*arr_lin_color)[latime_img * (linie + 1 + i) + coloana + latime_sab - 1].pR = (*C).pR;
     }
 }
+
 // "n"  reprezinta numarul de pixeli din sablonul S = latime_sab * inaltime_sab
 // "i" reprezinta linia, iar "j" reprezinta coloana din sablonul S
 // "Sij" reprezinta valoarea intensitatii grayscale a pixelului de la linia i coloana j in sablonul S
@@ -403,15 +363,13 @@ void colorare(struct pixel **arr_lin_color, unsigned int linie, unsigned int col
 //fIij reprezinta valoarea intensitatii grayscale a pixelului de pe linia i si coloana j din fereastra fI
 //"fI_" reprezinta media valorilor intensitatilor grayscale a pixelilor din fereastra fI
 //"sigmafI" reprezinta deviatia standard a valorilor intensitatilor grayscale a pixelilor din fereastra fI
-double corelatie(char *numeImg, char *numeSablon, unsigned int linie, unsigned int coloana, struct pixel *arr_lin_gri, struct pixel *arr_lin_sab)
-{
+double corelatie(char *numeImg, char *numeSablon, unsigned int linie, unsigned int coloana, struct pixel *arr_lin_gri, struct pixel *arr_lin_sab) {
     unsigned int latime_img, inaltime_img, latime_sab, inaltime_sab, n, i, j;
 
     FILE *f = fopen(numeImg, "rb");
     FILE *g = fopen(numeSablon, "rb");
 
-    if (f == NULL || g == NULL)
-    {
+    if (f == NULL || g == NULL) {
         printf("Eroare la deschiderea fisierului imagine/ sablon");
         return 1;
     }
@@ -437,8 +395,7 @@ double corelatie(char *numeImg, char *numeSablon, unsigned int linie, unsigned i
     // deviatia standard a valorilor intensitatilor grayscale a pixelilor din sablon
 
     for (i = 0; i < inaltime_sab; ++i)
-        for (j = 0; j < latime_sab; ++j)
-        {
+        for (j = 0; j < latime_sab; ++j) {
             double derivatie = arr_lin_sab[i * latime_sab + j].pR - S_;
             derivatie = derivatie * derivatie;
             sigmaS = sigmaS + derivatie;
@@ -456,8 +413,7 @@ double corelatie(char *numeImg, char *numeSablon, unsigned int linie, unsigned i
     // deviatia standard a valorilor intensitatilor grayscale a pixelilor din fereastra
 
     for (i = 0; i < inaltime_sab; ++i)
-        for (j = 0; j < latime_sab; ++j)
-        {
+        for (j = 0; j < latime_sab; ++j) {
             double derivatie = arr_lin_gri[(i + (linie)) * latime_img + (j + (coloana))].pR - fI_;
             derivatie = derivatie * derivatie;
             sigmafI = sigmafI + derivatie;
@@ -466,8 +422,7 @@ double corelatie(char *numeImg, char *numeSablon, unsigned int linie, unsigned i
     sigmafI = sqrt(sigmafI);
 
     for (i = 0; i < inaltime_sab; ++i)
-        for (j = 0; j < latime_sab; ++j)
-        {
+        for (j = 0; j < latime_sab; ++j) {
             unsigned char intensitateImg = arr_lin_gri[(i + (linie)) * latime_img + (j + (coloana))].pR;
             unsigned char intensitateSab = arr_lin_sab[i * latime_sab + j].pR;
 
@@ -481,13 +436,11 @@ double corelatie(char *numeImg, char *numeSablon, unsigned int linie, unsigned i
 
     return corr;
 }
-void glisare(char *numeImgGri, char *numeSablonGri, struct detectie **D, unsigned int *n, double prag, struct pixel *C)
-{
+void glisare(char *numeImgGri, char *numeSablonGri, struct detectie **D, unsigned int *n, double prag, struct pixel *C) {
     FILE *f = fopen(numeImgGri, "rb");
     FILE *g = fopen(numeSablonGri, "rb");
 
-    if (f == NULL || g == NULL)
-    {
+    if (f == NULL || g == NULL) {
         printf("Eroare la deschiderea fisierului img sau sablon ");
         return;
     }
@@ -506,27 +459,22 @@ void glisare(char *numeImgGri, char *numeSablonGri, struct detectie **D, unsigne
     *D = NULL;
     (*n) = 0;
 
-    for (i = 0; i < inaltime_img - inaltime_sab; i++)
-    {
-        for (j = 0; j < latime_img - latime_sab; j++)
-        {
+    for (i = 0; i < inaltime_img - inaltime_sab; i++) {
+        for (j = 0; j < latime_img - latime_sab; j++) {
             corr = corelatie(numeImgGri, numeSablonGri, i, j, arr_lin_gri, arr_lin_sab);
 
-            if (corr > (prag))
-            {
+            if (corr > (prag)) {
                 colorare(&arr_lin, i, j, C, numeImgGri, numeSablonGri);
 
                 (*n)++;
                 temp = (struct detectie *)realloc(*D, (*n) * sizeof(struct detectie));
 
-                if (temp == NULL)
-                {
+                if (temp == NULL) {
                     printf("Nu s-a putut realoca");
                     free(*D);
                     return;
                 }
-                else
-                {
+                else {
                     *D = temp;
                     (*D)[(*n) - 1].lin = i;
                     (*D)[(*n) - 1].col = j;
@@ -542,8 +490,7 @@ void glisare(char *numeImgGri, char *numeSablonGri, struct detectie **D, unsigne
     fclose(g);
 }
 
-int compare(const void *a, const void *b)
-{
+int compare(const void *a, const void *b) {
     struct detectie va = *(struct detectie *)a;
     struct detectie vb = *(struct detectie *)b;
     if (va.corr > vb.corr)
@@ -552,8 +499,7 @@ int compare(const void *a, const void *b)
         return -1;
 }
 
-int main()
-{
+int main() {
     char numeImg[20], numeImgLiniarizata[20], numeImgCriptata[20], numeImgDecriptata[20];
     struct pixel *arr_img_crip, arr_img_perm;
     struct pixel arr_lin, *arr_liniarizat;
@@ -614,8 +560,7 @@ int main()
     liniarizare(numeImgTest, &arr_lin_colorare, &latime_img, &inaltime_img);
     liniarizare(numeImgGri, &arr_lin_gri, &latime_img_gri, &inaltime_img_gri);
 
-    for (i = 0; i <= 9; i++)
-    {
+    for (i = 0; i <= 9; i++) {
         printf("Numele sablonului este:");
         scanf("%s ", numeSablon);
         printf("Culoarea pentru sablonul actual este");
